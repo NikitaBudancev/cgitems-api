@@ -1,0 +1,12 @@
+{
+    "[php]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "open-southeners.laravel-pint"
+    },
+    "preset": "laravel",
+    "rules": {
+        "concat_space": {
+            "spacing": "one"
+        }
+    }
+}

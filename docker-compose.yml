@@ -1,0 +1,79 @@
+services:
+    nginx:
+        image: nginx:alpine
+        container_name: webserver
+        restart: unless-stopped
+        ports:
+            - 8000:80
+        volumes:
+            - ./:/var/www/html:cached
+            - ./.docker/nginx:/etc/nginx/conf.d
+        networks:
+            - app-network
+
+    app:
+        build:
+            context: ./.docker/app
+            dockerfile: Dockerfile
+        image: app
+        container_name: app
+        extra_hosts:
+            - host.docker.internal:host-gateway
+        environment:
+            PHP_IDE_CONFIG: serverName=Docker
+        restart: unless-stopped
+        ports:
+            - 6001:6001
+        working_dir: /var/www/html
+        volumes:
+            - ./:/var/www/html:cached
+            - ./.docker/php/php.ini:/usr/local/etc/php/conf.d/custom-php.ini
+            - ./.docker/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+        networks:
+            - app-network
+        depends_on:
+            - database
+            - redis
+
+    database:
+        image: postgres:latest
+        container_name: database
+        restart: always
+        ports:
+            - 5432:5432
+        volumes:
+            - ./.docker/db/postgres:/var/lib/postgresql
+        environment:
+            - POSTGRES_DB=${DB_DATABASE}
+            - POSTGRES_USER=${DB_USERNAME}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+        networks:
+            - app-network
+
+    redis:
+        image: redis:alpine
+        container_name: redis
+        command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
+        volumes:
+            - ./.docker/db/redis:/data
+        ports:
+            - 6379:6379
+        networks:
+            - app-network
+    mailpit:
+        image: 'axllent/mailpit:latest'
+        container_name: mailpit
+        restart: unless-stopped
+        ports:
+            - 8025:8025
+            - 1025:1025
+        networks:
+            - app-network
+
+networks:
+    app-network:
+        driver: bridge
+
+volumes:
+    app-volume:
+        driver: local
